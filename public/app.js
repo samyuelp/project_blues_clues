@@ -1,5 +1,5 @@
 /* ==================================================================
-   Project Blue's Clues — frontend state machine
+   Project Blue's Clues — frontend state machine (v2)
    Flow: loading → clue → video → question → vault → next → (advance)
    ================================================================== */
 
@@ -22,14 +22,75 @@ function showScreen(name) {
   screens[name].classList.add("active");
 }
 
-/* ---------------- Boot ---------------- */
+/* ==================================================================
+   Ambient background particles
+   ================================================================== */
+(function initBackground() {
+  const canvas = $("bg-canvas");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0;
+  const particles = [];
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = canvas.clientWidth;
+    H = canvas.clientHeight;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function spawn() {
+    return {
+      x: Math.random() * W,
+      y: H + Math.random() * 100,
+      r: 0.6 + Math.random() * 1.8,
+      vy: -(0.15 + Math.random() * 0.5),
+      vx: (Math.random() - 0.5) * 0.15,
+      alpha: 0.15 + Math.random() * 0.35,
+      hue: Math.random() < 0.5 ? "122,168,255" : "240,180,41",
+    };
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, W, H);
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.y < -20) particles[i] = spawn();
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${p.hue},${p.alpha})`;
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function start() {
+    resize();
+    particles.length = 0;
+    const count = Math.min(60, Math.floor((W * H) / 22000));
+    for (let i = 0; i < count; i++) particles.push(spawn());
+    loop();
+  }
+
+  window.addEventListener("resize", resize);
+  // Wait one frame so clientWidth is available
+  requestAnimationFrame(start);
+})();
+
+/* ==================================================================
+   Boot
+   ================================================================== */
 async function init() {
   try {
     const res = await fetch("/api/config");
     if (!res.ok) throw new Error("Failed to load config");
     CONFIG = await res.json();
     stepIndex = 0;
-    startStep();
+    // small delay to let the loader breathe
+    setTimeout(startStep, 600);
   } catch (err) {
     console.error(err);
     screens.loading.innerHTML =
@@ -38,10 +99,7 @@ async function init() {
 }
 
 function startStep() {
-  if (stepIndex >= CONFIG.steps.length) {
-    // Only one step defined? Loop back to it.
-    stepIndex = 0;
-  }
+  if (stepIndex >= CONFIG.steps.length) stepIndex = 0;
   currentStep = CONFIG.steps[stepIndex];
   showClueScreen();
 }
@@ -52,7 +110,7 @@ function showClueScreen() {
   $("clue-input").value = "";
   $("clue-error").textContent = "";
   showScreen("clue");
-  setTimeout(() => $("clue-input").focus(), 150);
+  setTimeout(() => $("clue-input").focus(), 300);
 }
 
 async function submitClue() {
@@ -148,7 +206,7 @@ async function submitAnswer(optionId, btnEl) {
 
   if (data.correct) {
     btnEl.classList.add("correct");
-    setTimeout(showVaultScreen, 600);
+    setTimeout(showVaultScreen, 800);
   } else {
     btnEl.classList.add("wrong");
     $("question-error").textContent =
@@ -156,7 +214,7 @@ async function submitAnswer(optionId, btnEl) {
     setTimeout(() => {
       btnEl.classList.remove("wrong");
       document.querySelectorAll(".option-btn").forEach((b) => (b.disabled = false));
-    }, 800);
+    }, 900);
   }
 }
 
@@ -164,44 +222,59 @@ async function submitAnswer(optionId, btnEl) {
 function showVaultScreen() {
   showScreen("vault");
 
-  // Clear any leftover sparkles from a previous play-through
-  if (sparkleAnimId) {
-    cancelAnimationFrame(sparkleAnimId);
-    sparkleAnimId = null;
-    const c = $("sparkle-canvas");
-    const ctx = c.getContext("2d");
-    ctx.clearRect(0, 0, c.width, c.height);
-  }
-
-  const door = $("vault-door-group");
-  const glow = $("vault-glow");
-  const hint = $("vault-hint");
+  const scene    = $("vault-scene");
+  const door     = $("vault-door");
+  const handle   = $("vault-handle");
+  const bolts    = document.querySelectorAll(".door-bolts span");
+  const rays     = $("vault-rays");
+  const hint     = $("vault-hint");
 
   // Reset
-  door.classList.remove("unlocking", "open");
-  door.style.transform = "";
+  scene.classList.remove("zoom");
+  door.classList.remove("open");
+  handle.classList.remove("spin");
+  rays.classList.remove("on");
   hint.textContent = "Unlocking…";
-  glow.classList.remove("on");
+  clearCanvas("dust-canvas");
+  clearCanvas("sparkle-canvas");
+  if (sparkleAnimId) { cancelAnimationFrame(sparkleAnimId); sparkleAnimId = null; }
+  if (dustAnimId)    { cancelAnimationFrame(dustAnimId);    dustAnimId = null; }
 
-  // Phase 1 — handle spins + door rotates slightly (the "unlock")
+  // Phase 1 — handle spins (0.2s → 1.3s)
   setTimeout(() => {
-    door.classList.add("unlocking");
+    handle.classList.add("spin");
   }, 200);
 
-  // Phase 2 — door swings open, glow appears, sparkles fire
+  // Phase 2 — bolts retract (1.4s)
   setTimeout(() => {
-    door.classList.remove("unlocking");
-    // force reflow so the transition plays
-    void door.offsetWidth;
-    door.classList.add("open");
-    glow.classList.add("on");
-    fireSparkles();
-    hint.textContent = "It's open!";
-  }, 1700);
+    // Re-trigger the transition by toggling a class
+    bolts.forEach((b) => b.style.transition = "transform 0.5s cubic-bezier(0.6,0,0.3,1)");
+    // The "retracted" state is smaller — we nudge each inward via a wrapper
+    bolts.forEach((b) => {
+      const t = b.style.transform;
+      b.dataset.orig = t;
+      // Small inward nudge
+      b.style.transform = t + " scale(0.6)";
+    });
+  }, 1400);
 
-  // Phase 3 — advance to next clue
-  const ms = currentStep.vault?.animationMs || 2500;
-  setTimeout(showNextScreen, 1700 + ms);
+  // Phase 3 — door swings open, dust puffs, rays turn on (2.0s)
+  setTimeout(() => {
+    door.classList.add("open");
+    rays.classList.add("on");
+    scene.classList.add("zoom");
+    fireDust();
+    hint.textContent = "It's open!";
+  }, 2000);
+
+  // Phase 4 — sparkles fire as the interior is revealed (2.8s)
+  setTimeout(() => {
+    fireSparkles();
+  }, 2800);
+
+  // Phase 5 — advance to next clue
+  const ms = currentStep.vault?.animationMs || 3500;
+  setTimeout(showNextScreen, 2000 + ms);
 }
 
 /* ---------------- 5. Next clue ---------------- */
@@ -224,76 +297,139 @@ function advance() {
   startStep();
 }
 
-/* ---------------- Sparkle burst ---------------- */
+/* ==================================================================
+   Canvas helpers
+   ================================================================== */
+function clearCanvas(id) {
+  const c = $(id);
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+}
 
-let sparkleAnimId = null;
-
-function fireSparkles() {
-  const canvas = $("sparkle-canvas");
-  const ctx = canvas.getContext("2d");
-
-  // Match the canvas resolution to its rendered size (handles retina)
-  const dpr = window.devicePixelRatio || 1;
+function sizeCanvas(canvas) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const rect = canvas.getBoundingClientRect();
   canvas.width  = rect.width * dpr;
   canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: rect.width, h: rect.height };
+}
 
-  const cx = rect.width / 2;
-  const cy = rect.height / 2;
+/* ==================================================================
+   Dust puff (fires when door opens)
+   ================================================================== */
+let dustAnimId = null;
 
-  // Colours pulled from the vault glow palette
-  const palette = ["#ffe9a8", "#f0b429", "#fff4d0", "#ffffff"];
+function fireDust() {
+  const canvas = $("dust-canvas");
+  const { ctx, w, h } = sizeCanvas(canvas);
+  const cx = w / 2;
+  const cy = h / 2;
 
-  // Create a burst of particles radiating outward
   const particles = [];
-  const COUNT = 90;
+  const COUNT = 46;
   for (let i = 0; i < COUNT; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1.5 + Math.random() * 4.5;
-    const size  = 2 + Math.random() * 4;
-    const life  = 60 + Math.random() * 50;
-
+    // Bias angles to the left side (where the door opens)
+    const angle = (Math.PI * 0.3) + Math.random() * Math.PI * 1.4;
+    const speed = 0.5 + Math.random() * 2.2;
+    const r = 10 + Math.random() * 30;
+    const life = 70 + Math.random() * 60;
     particles.push({
-      x: cx,
-      y: cy,
+      x: cx, y: cy,
       vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size,
-      life,
-      maxLife: life,
-      color: palette[(Math.random() * palette.length) | 0],
-      rotation: Math.random() * Math.PI,
-      spin: (Math.random() - 0.5) * 0.3,
+      vy: Math.sin(angle) * speed - 0.3,
+      r, life, maxLife: life,
     });
   }
 
   let frame = 0;
 
   function tick() {
-    ctx.clearRect(0, 0, rect.width, rect.height);
+    ctx.clearRect(0, 0, w, h);
     let alive = 0;
-
     for (const p of particles) {
       p.x += p.vx;
       p.y += p.vy;
       p.vx *= 0.98;
       p.vy *= 0.98;
-      p.vy += 0.04; // slight gravity
+      p.r *= 1.01;
+      p.life -= 1;
+      if (p.life > 0) {
+        alive++;
+        const a = (p.life / p.maxLife) * 0.35;
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        grad.addColorStop(0, `rgba(220,200,160,${a})`);
+        grad.addColorStop(1, `rgba(220,200,160,0)`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    frame++;
+    if (alive > 0 && frame < 200) {
+      dustAnimId = requestAnimationFrame(tick);
+    } else {
+      ctx.clearRect(0, 0, w, h);
+      dustAnimId = null;
+    }
+  }
+  tick();
+}
+
+/* ==================================================================
+   Sparkle burst (fires as interior is revealed)
+   ================================================================== */
+let sparkleAnimId = null;
+
+function fireSparkles() {
+  const canvas = $("sparkle-canvas");
+  const { ctx, w, h } = sizeCanvas(canvas);
+  const cx = w / 2;
+  const cy = h / 2;
+
+  const palette = ["#ffe9a8", "#f0b429", "#fff4d0", "#ffffff"];
+  const particles = [];
+  const COUNT = 110;
+  for (let i = 0; i < COUNT; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.4 + Math.random() * 5;
+    const size  = 2 + Math.random() * 4;
+    const life  = 70 + Math.random() * 60;
+    particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size, life, maxLife: life,
+      color: palette[(Math.random() * palette.length) | 0],
+      rotation: Math.random() * Math.PI,
+      spin: (Math.random() - 0.5) * 0.35,
+    });
+  }
+
+  let frame = 0;
+
+  function tick() {
+    ctx.clearRect(0, 0, w, h);
+    let alive = 0;
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      p.vy += 0.04;
       p.life -= 1;
       p.rotation += p.spin;
-
       if (p.life > 0) {
         alive++;
         const alpha = Math.max(0, p.life / p.maxLife);
-
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
         ctx.globalAlpha = alpha;
         ctx.fillStyle = p.color;
-
-        // Draw a little four-point star
         const s = p.size;
         ctx.beginPath();
         ctx.moveTo(0, -s);
@@ -306,27 +442,17 @@ function fireSparkles() {
         ctx.lineTo(-s * 0.3, -s * 0.3);
         ctx.closePath();
         ctx.fill();
-
         ctx.restore();
       }
     }
-
     frame++;
-
-    if (alive > 0 && frame < 180) {
+    if (alive > 0 && frame < 200) {
       sparkleAnimId = requestAnimationFrame(tick);
     } else {
-      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.clearRect(0, 0, w, h);
       sparkleAnimId = null;
     }
   }
-
-  // Cancel any existing animation before starting a new one
-  if (sparkleAnimId) {
-    cancelAnimationFrame(sparkleAnimId);
-    sparkleAnimId = null;
-  }
-
   tick();
 }
 

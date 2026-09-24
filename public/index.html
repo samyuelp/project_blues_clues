@@ -9,11 +9,19 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
+  <!-- Ambient floating particles behind everything -->
+  <canvas id="bg-canvas" class="bg-canvas"></canvas>
+
   <div id="app">
 
     <!-- ============ Loading ============ -->
     <section class="screen active" id="screen-loading">
-      <div class="spinner"></div>
+      <div class="loader">
+        <div class="loader-ring"></div>
+        <div class="loader-ring"></div>
+        <div class="loader-ring"></div>
+        <div class="loader-core"></div>
+      </div>
       <p class="muted">Warming up the vault…</p>
     </section>
 
@@ -23,16 +31,19 @@
         <div class="badge">STEP 1</div>
         <h1 class="title">Enter the Clue</h1>
         <p class="prompt" id="clue-prompt"></p>
-        <input
-          id="clue-input"
-          class="big-input"
-          type="text"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="characters"
-          spellcheck="false"
-          placeholder="TYPE HERE"
-        />
+        <div class="input-wrap">
+          <input
+            id="clue-input"
+            class="big-input"
+            type="text"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="TYPE HERE"
+          />
+          <div class="input-glow"></div>
+        </div>
         <div class="error" id="clue-error"></div>
         <button class="big-btn" id="clue-submit">Unlock</button>
       </div>
@@ -40,8 +51,14 @@
 
     <!-- ============ Video ============ -->
     <section class="screen" id="screen-video">
-      <div class="video-wrap">
-        <video id="video-player" playsinline controlslist="nodownload" preload="auto"></video>
+      <div class="video-frame">
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+        <div class="video-wrap">
+          <video id="video-player" playsinline controlslist="nodownload" preload="auto"></video>
+        </div>
       </div>
       <p class="hint" id="video-hint">Watch the whole video to continue.</p>
       <button class="big-btn" id="video-continue" disabled>Continue</button>
@@ -59,86 +76,66 @@
 
     <!-- ============ Vault ============ -->
     <section class="screen" id="screen-vault">
-      <div class="vault-stage">
-        <!-- Light beam that appears when the door opens -->
-        <div class="vault-glow" id="vault-glow"></div>
+      <div class="vault-scene" id="vault-scene">
+        <!-- Cinematic vignette + light effects -->
+        <div class="vault-rays" id="vault-rays"></div>
 
-        <!-- The vault itself, drawn as SVG -->
-        <svg class="vault-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="interiorGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%"   stop-color="#ffe9a8" />
-              <stop offset="45%"  stop-color="#f0b429" />
-              <stop offset="100%" stop-color="#3a2408" />
-            </radialGradient>
-            <radialGradient id="doorGrad" cx="35%" cy="30%" r="75%">
-              <stop offset="0%"   stop-color="#f5f7fa" />
-              <stop offset="35%"  stop-color="#c8ced8" />
-              <stop offset="70%"  stop-color="#7c8493" />
-              <stop offset="100%" stop-color="#3c434f" />
-            </radialGradient>
-            <radialGradient id="handleGrad" cx="40%" cy="35%" r="70%">
-              <stop offset="0%"   stop-color="#ffffff" />
-              <stop offset="50%"  stop-color="#dfe4ec" />
-              <stop offset="100%" stop-color="#8a92a1" />
-            </radialGradient>
-            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
-              <feOffset dx="0" dy="4" result="offsetblur"/>
-              <feComponentTransfer>
-                <feFuncA type="linear" slope="0.5"/>
-              </feComponentTransfer>
-              <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
+        <!-- 3D stage -->
+        <div class="vault-3d">
+          <!-- The vault interior (behind the door) -->
+          <div class="vault-interior">
+            <div class="interior-room">
+              <div class="interior-glow"></div>
+              <div class="interior-floor"></div>
+              <div class="interior-chest">
+                <div class="chest-body"></div>
+                <div class="chest-lid"></div>
+                <div class="chest-glow"></div>
+              </div>
+            </div>
+          </div>
 
-          <!-- Interior -->
-          <circle cx="200" cy="200" r="180" fill="url(#interiorGrad)" />
+          <!-- The vault door (swings open) -->
+          <div class="vault-door" id="vault-door">
+            <div class="door-face">
+              <!-- Outer metallic ring -->
+              <div class="door-ring"></div>
+              <!-- Inner plate -->
+              <div class="door-plate"></div>
+              <!-- Rivets -->
+              <div class="door-rivets">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <!-- Handle assembly -->
+              <div class="door-handle" id="vault-handle">
+                <div class="handle-bar-h"></div>
+                <div class="handle-bar-v"></div>
+                <div class="handle-hub"></div>
+                <div class="handle-hub-inner"></div>
+              </div>
+              <!-- Bolts around the rim (retract before opening) -->
+              <div class="door-bolts">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+            <!-- Edge thickness (visible when door opens) -->
+            <div class="door-edge"></div>
+          </div>
+        </div>
 
-          <!-- The opening door -->
-          <g id="vault-door-group" class="vault-door-group">
-            <!-- Outer riveted ring -->
-            <circle cx="200" cy="200" r="180" fill="url(#doorGrad)" stroke="#2a2f38" stroke-width="6" filter="url(#softShadow)"/>
-
-            <!-- Inner plate -->
-            <circle cx="200" cy="200" r="150" fill="none" stroke="#2a2f38" stroke-width="3" opacity="0.5"/>
-            <circle cx="200" cy="200" r="120" fill="none" stroke="#2a2f38" stroke-width="2" opacity="0.35"/>
-
-            <!-- Rivets around the rim -->
-            <g fill="#3c434f">
-              <circle cx="200" cy="30"  r="7" />
-              <circle cx="200" cy="370" r="7" />
-              <circle cx="30"  cy="200" r="7" />
-              <circle cx="370" cy="200" r="7" />
-              <circle cx="80"  cy="80"  r="7" />
-              <circle cx="320" cy="80"  r="7" />
-              <circle cx="80"  cy="320" r="7" />
-              <circle cx="320" cy="320" r="7" />
-            </g>
-
-            <!-- Cross-style handle (Coca-Cola vault vibe) -->
-            <g id="vault-handle" filter="url(#softShadow)">
-              <rect x="80" y="188" width="240" height="24" rx="12" fill="url(#handleGrad)" stroke="#5a6270" stroke-width="2"/>
-              <rect x="188" y="80"  width="24" height="240" rx="12" fill="url(#handleGrad)" stroke="#5a6270" stroke-width="2"/>
-              <circle cx="200" cy="200" r="34" fill="url(#handleGrad)" stroke="#5a6270" stroke-width="2"/>
-              <circle cx="200" cy="200" r="14" fill="#3c434f"/>
-            </g>
-          </g>
-        </svg>
-
-        <!-- Sparkle particle layer -->
+        <!-- Dust puff and sparkle layers -->
+        <canvas id="dust-canvas" class="dust-canvas"></canvas>
         <canvas id="sparkle-canvas" class="sparkle-canvas"></canvas>
 
-        <p class="hint" id="vault-hint">Unlocking…</p>
+        <p class="hint vault-hint" id="vault-hint">Unlocking…</p>
       </div>
     </section>
 
     <!-- ============ Next clue ============ -->
     <section class="screen" id="screen-next">
-      <div class="card wide">
+      <div class="card wide success-card">
         <div class="badge success">UNLOCKED</div>
         <h1 class="title">Next Clue</h1>
         <p class="prompt" id="next-text"></p>
