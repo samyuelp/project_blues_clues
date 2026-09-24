@@ -4,7 +4,7 @@ FastAPI app for Project Blue's Clues.
 Serves:
 - Static frontend from /public
 - GET  /api/config              → sanitized config (no answers)
-- POST /api/validate/clue       → { stepId, input }  → { correct }
+- POST /api/validate/clue       → { stepId, input }    → { correct }
 - POST /api/validate/answer     → { stepId, optionId } → { correct }
 - POST /api/reset               → resets server-side state
 - GET  /docs                    → auto-generated API docs (FastAPI built-in)
@@ -13,7 +13,6 @@ Serves:
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -87,4 +86,5 @@ def reset():
 # Static frontend
 # ---------------------------------------------------------------------------
 # Serve /public/index.html at the root, and everything else under /public at /.
+# Mounted last so it doesn't shadow the /api/* routes above.
 app.mount("/", StaticFiles(directory=str(PUBLIC_DIR), html=True), name="static")

@@ -77,7 +77,7 @@
     <!-- ============ Vault ============ -->
     <section class="screen" id="screen-vault">
       <div class="vault-scene" id="vault-scene">
-        <!-- Cinematic vignette + light effects -->
+        <!-- Cinematic light rays across the screen -->
         <div class="vault-rays" id="vault-rays"></div>
 
         <!-- 3D stage -->
@@ -98,29 +98,23 @@
           <!-- The vault door (swings open) -->
           <div class="vault-door" id="vault-door">
             <div class="door-face">
-              <!-- Outer metallic ring -->
               <div class="door-ring"></div>
-              <!-- Inner plate -->
               <div class="door-plate"></div>
-              <!-- Rivets -->
               <div class="door-rivets">
                 <span></span><span></span><span></span><span></span>
                 <span></span><span></span><span></span><span></span>
               </div>
-              <!-- Handle assembly -->
               <div class="door-handle" id="vault-handle">
                 <div class="handle-bar-h"></div>
                 <div class="handle-bar-v"></div>
                 <div class="handle-hub"></div>
                 <div class="handle-hub-inner"></div>
               </div>
-              <!-- Bolts around the rim (retract before opening) -->
               <div class="door-bolts">
                 <span></span><span></span><span></span><span></span>
                 <span></span><span></span><span></span><span></span>
               </div>
             </div>
-            <!-- Edge thickness (visible when door opens) -->
             <div class="door-edge"></div>
           </div>
         </div>
@@ -139,7 +133,7 @@
         <div class="badge success">UNLOCKED</div>
         <h1 class="title">Next Clue</h1>
         <p class="prompt" id="next-text"></p>
-        <img id="next-image" class="next-image" alt="" />
+        <div class="next-images" id="next-images"></div>
         <button class="big-btn" id="next-done">Done</button>
       </div>
     </section>

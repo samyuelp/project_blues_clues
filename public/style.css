@@ -110,7 +110,6 @@ html, body {
 }
 
 .card::before {
-  /* subtle top-left light sweep */
   content: "";
   position: absolute;
   inset: -2px;
@@ -154,7 +153,6 @@ html, body {
 }
 
 .badge.success::after {
-  /* shimmer sweep across the badge */
   content: "";
   position: absolute;
   inset: 0;
@@ -261,7 +259,6 @@ html, body {
 }
 
 .big-btn::after {
-  /* sheen on hover */
   content: "";
   position: absolute;
   inset: 0;
@@ -393,7 +390,7 @@ html, body {
 }
 
 /* ==================================================================
-   VAULT — rebuilt with 3D
+   VAULT — 3D door
    ================================================================== */
 
 .vault-scene {
@@ -412,7 +409,6 @@ html, body {
   transform: scale(1.08);
 }
 
-/* 3D stage holding the interior + door */
 .vault-3d {
   position: relative;
   width: min(60vh, 60vw, 460px);
@@ -420,7 +416,7 @@ html, body {
   transform-style: preserve-3d;
 }
 
-/* ---- Interior (what you see once the door opens) ---- */
+/* ---- Interior (revealed once the door opens) ---- */
 .vault-interior {
   position: absolute;
   inset: 0;
@@ -466,7 +462,6 @@ html, body {
   background: linear-gradient(180deg, transparent, rgba(0,0,0,0.7));
 }
 
-/* The treasure chest inside */
 .interior-chest {
   position: relative;
   width: 40%;
@@ -523,7 +518,7 @@ html, body {
   to { opacity: 1; }
 }
 
-/* ---- Vault door (swings open) ---- */
+/* ---- Vault door ---- */
 .vault-door {
   position: absolute;
   inset: 0;
@@ -565,7 +560,6 @@ html, body {
   border: 2px dashed rgba(42,47,56,0.35);
 }
 
-/* Rivets on the face */
 .door-rivets span {
   position: absolute;
   width: 14px;
@@ -585,7 +579,6 @@ html, body {
 .door-rivets span:nth-child(7) { bottom: 15%; left: 15%; }
 .door-rivets span:nth-child(8) { bottom: 15%; right: 15%; }
 
-/* Bolts that retract before opening */
 .door-bolts span {
   position: absolute;
   width: 20px;
@@ -669,10 +662,8 @@ html, body {
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.7);
 }
 
-/* Handle spin */
 .door-handle.spin { transform: rotate(720deg); }
 
-/* Door edge (visible when open) */
 .door-edge {
   position: absolute;
   top: 0;
@@ -685,7 +676,7 @@ html, body {
   border-radius: 4px;
 }
 
-/* Vault screen ambient effects */
+/* Vault screen rays */
 .vault-rays {
   position: absolute;
   top: 50%;
@@ -722,7 +713,7 @@ html, body {
   z-index: 6;
 }
 
-.dust-canvas { z-index: 4; }
+.dust-canvas    { z-index: 4; }
 .sparkle-canvas { z-index: 7; }
 
 .vault-hint {
@@ -732,14 +723,48 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ---------- Next clue ---------- */
-.next-image {
-  max-width: 100%;
-  max-height: 40vh;
-  border-radius: 14px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-  animation: riseIn 0.6s 0.4s both;
+/* ---------- Next clue images ---------- */
+.next-images {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.2rem;
+  width: 100%;
+  justify-items: center;
 }
+
+.next-images.two-up {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 640px) {
+  .next-images.two-up { grid-template-columns: 1fr; }
+}
+
+.next-images img {
+  max-width: 100%;
+  max-height: 42vh;
+  border-radius: 14px;
+  box-shadow:
+    0 20px 50px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(255,255,255,0.06);
+  animation: riseIn 0.6s both;
+  cursor: zoom-in;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  object-fit: contain;
+}
+
+.next-images img:hover {
+  transform: scale(1.02);
+  box-shadow:
+    0 25px 60px rgba(0,0,0,0.7),
+    0 0 30px rgba(240,180,41,0.25),
+    0 0 0 1px rgba(255,255,255,0.1);
+}
+
+.next-images img:nth-child(1) { animation-delay: 0.35s; }
+.next-images img:nth-child(2) { animation-delay: 0.50s; }
+.next-images img:nth-child(3) { animation-delay: 0.65s; }
+.next-images img:nth-child(4) { animation-delay: 0.80s; }
 
 /* ---------- Loading ---------- */
 .loader {

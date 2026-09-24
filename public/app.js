@@ -1,6 +1,11 @@
 /* ==================================================================
    Project Blue's Clues — frontend state machine (v2)
+
    Flow: loading → clue → video → question → vault → next → (advance)
+
+   Everything is driven by /api/config, which is fetched once on load.
+   Answers are validated server-side; this file never sees the correct
+   answers, only { correct: true/false } responses.
    ================================================================== */
 
 let CONFIG = null;
@@ -76,7 +81,6 @@ function showScreen(name) {
   }
 
   window.addEventListener("resize", resize);
-  // Wait one frame so clientWidth is available
   requestAnimationFrame(start);
 })();
 
@@ -89,7 +93,7 @@ async function init() {
     if (!res.ok) throw new Error("Failed to load config");
     CONFIG = await res.json();
     stepIndex = 0;
-    // small delay to let the loader breathe
+    // small delay so the loader breathes
     setTimeout(startStep, 600);
   } catch (err) {
     console.error(err);
@@ -247,13 +251,9 @@ function showVaultScreen() {
 
   // Phase 2 — bolts retract (1.4s)
   setTimeout(() => {
-    // Re-trigger the transition by toggling a class
-    bolts.forEach((b) => b.style.transition = "transform 0.5s cubic-bezier(0.6,0,0.3,1)");
-    // The "retracted" state is smaller — we nudge each inward via a wrapper
     bolts.forEach((b) => {
       const t = b.style.transform;
       b.dataset.orig = t;
-      // Small inward nudge
       b.style.transform = t + " scale(0.6)";
     });
   }, 1400);
@@ -272,7 +272,7 @@ function showVaultScreen() {
     fireSparkles();
   }, 2800);
 
-  // Phase 5 — advance to next clue
+  // Phase 5 — show the next clue (after the vault animation settles)
   const ms = currentStep.vault?.animationMs || 3500;
   setTimeout(showNextScreen, 2000 + ms);
 }
@@ -281,13 +281,28 @@ function showVaultScreen() {
 function showNextScreen() {
   const clue = currentStep.nextClue || {};
   $("next-text").textContent = clue.text || "";
-  const img = $("next-image");
-  if (clue.image) {
-    img.src = clue.image;
-    img.style.display = "block";
-  } else {
-    img.style.display = "none";
+
+  // Support both new ("images": [...]) and old ("image": "...") shapes
+  let images = [];
+  if (Array.isArray(clue.images)) {
+    images = clue.images.filter(Boolean);
+  } else if (clue.image) {
+    images = [clue.image];
   }
+
+  const container = $("next-images");
+  container.innerHTML = "";
+  container.classList.toggle("two-up", images.length === 2);
+
+  images.forEach((src, i) => {
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = `Clue image ${i + 1}`;
+    // Tap to open full-size in a new tab (browser zoom, no leaving the flow)
+    img.addEventListener("click", () => window.open(src, "_blank"));
+    container.appendChild(img);
+  });
+
   showScreen("next");
 }
 
@@ -318,7 +333,7 @@ function sizeCanvas(canvas) {
 }
 
 /* ==================================================================
-   Dust puff (fires when door opens)
+   Dust puff (fires when the door opens)
    ================================================================== */
 let dustAnimId = null;
 
@@ -380,7 +395,7 @@ function fireDust() {
 }
 
 /* ==================================================================
-   Sparkle burst (fires as interior is revealed)
+   Sparkle burst (fires as the interior is revealed)
    ================================================================== */
 let sparkleAnimId = null;
 

@@ -74,7 +74,7 @@ def sanitize_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Return a copy of the config safe to send to the frontend.
     Strips: accepts.value, accepts.pattern, question.answer.
-    Keeps everything else (prompts, video paths, options, etc.)
+    Keeps everything else (prompts, video paths, options, next clue, etc.)
     """
     safe = {
         "meta": config.get("meta", {}),

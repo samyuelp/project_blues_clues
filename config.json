@@ -13,7 +13,7 @@
       "id": "step-1",
       "prompt": "Enter the code you found on the poster.",
       "accepts": {
-        "value": "AND9",
+        "value": "PINNI",
         "normalize": true,
         "strict": false
       },
@@ -23,23 +23,26 @@
         "skippable": false
       },
       "question": {
-        "text": "What color was the door the agent walked through?",
+        "text": "Placeholder question — swap this in once you have the real one.",
         "type": "mcq",
         "options": [
-          { "id": "a", "label": "Red" },
-          { "id": "b", "label": "Blue" },
-          { "id": "c", "label": "Green" },
-          { "id": "d", "label": "Black" }
+          { "id": "a", "label": "Placeholder A" },
+          { "id": "b", "label": "Placeholder B" },
+          { "id": "c", "label": "Placeholder C" },
+          { "id": "d", "label": "Placeholder D" }
         ],
-        "answer": "b"
+        "answer": "a"
       },
       "vault": {
         "theme": "bank-vault",
         "animationMs": 2500
       },
       "nextClue": {
-        "text": "Head to the bookshelf. Look behind the red book.",
-        "image": null
+        "text": "Study these closely. You'll need them for the next step.",
+        "images": [
+          "/assets/graph1.jpg",
+          "/assets/graph2.jpg"
+        ]
       }
     }
   ]
