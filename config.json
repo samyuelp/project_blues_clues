@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "title": "Project Blue's Clues",
+    "version": 1
+  },
+  "settings": {
+    "normalizeInput": true,
+    "shuffleOptions": true,
+    "wrongAnswerMessage": "Not quite. Take another look."
+  },
+  "steps": [
+    {
+      "id": "step-1",
+      "prompt": "Enter the code you found on the poster.",
+      "accepts": {
+        "value": "AND9",
+        "normalize": true,
+        "strict": false
+      },
+      "video": {
+        "src": "/videos/intro.mp4",
+        "requireFullWatch": true,
+        "skippable": false
+      },
+      "question": {
+        "text": "What color was the door the agent walked through?",
+        "type": "mcq",
+        "options": [
+          { "id": "a", "label": "Red" },
+          { "id": "b", "label": "Blue" },
+          { "id": "c", "label": "Green" },
+          { "id": "d", "label": "Black" }
+        ],
+        "answer": "b"
+      },
+      "vault": {
+        "theme": "bank-vault",
+        "animationMs": 2500
+      },
+      "nextClue": {
+        "text": "Head to the bookshelf. Look behind the red book.",
+        "image": null
+      }
+    }
+  ]
+}

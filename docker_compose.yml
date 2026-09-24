@@ -1,0 +1,12 @@
+services:
+  blues-clues:
+    build: .
+    container_name: blues-clues
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    volumes:
+      # Live-edit these without rebuilding the image:
+      - ./config.json:/app/config.json:ro
+      - ./public/videos:/app/public/videos:ro
+      - ./public/assets:/app/public/assets:ro

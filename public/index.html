@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Project Blue's Clues</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Loading -->
+    <section class="screen active" id="screen-loading">
+      <div class="spinner"></div>
+      <p>Loading…</p>
+    </section>
+
+    <!-- Clue input -->
+    <section class="screen" id="screen-clue">
+      <h1 class="title">Enter the Clue</h1>
+      <p class="prompt" id="clue-prompt"></p>
+      <input
+        id="clue-input"
+        class="big-input"
+        type="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        placeholder="TYPE HERE"
+      />
+      <div class="error" id="clue-error"></div>
+      <button class="big-btn" id="clue-submit">Submit</button>
+    </section>
+
+    <!-- Video -->
+    <section class="screen" id="screen-video">
+      <video id="video-player" playsinline controlslist="nodownload" preload="auto"></video>
+      <p class="hint" id="video-hint">Watch the whole video to continue.</p>
+      <button class="big-btn" id="video-continue" disabled>Continue</button>
+    </section>
+
+    <!-- Question -->
+    <section class="screen" id="screen-question">
+      <h1 class="title">Question</h1>
+      <p class="prompt" id="question-text"></p>
+      <div class="options" id="question-options"></div>
+      <div class="error" id="question-error"></div>
+    </section>
+
+    <!-- Vault -->
+    <section class="screen" id="screen-vault">
+      <div class="vault" id="vault">
+        <div class="vault-door" id="vault-door">
+          <div class="vault-handle"></div>
+        </div>
+      </div>
+      <p class="hint" id="vault-hint">Unlocking…</p>
+    </section>
+
+    <!-- Next clue -->
+    <section class="screen" id="screen-next">
+      <h1 class="title">Next Clue</h1>
+      <p class="prompt" id="next-text"></p>
+      <img id="next-image" class="next-image" alt="" />
+      <button class="big-btn" id="next-done">Done</button>
+    </section>
+
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
