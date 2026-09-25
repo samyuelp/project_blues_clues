@@ -1,5 +1,6 @@
 /* ==================================================================
-   Project Blue's Clues — visual theme (v2)
+   Project Blue's Clues — visual theme (v3)
+   iPad viewport fixes: dvh, safe areas, scrollable screens
    ================================================================== */
 
 * {
@@ -34,14 +35,16 @@ html, body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  /* Prevent iOS text size adjust on rotate */
+  -webkit-text-size-adjust: 100%;
 }
 
 /* ---------- Ambient background ---------- */
 .bg-canvas {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 0;
   pointer-events: none;
   background:
@@ -55,8 +58,9 @@ html, body {
 #app {
   position: relative;
   z-index: 1;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100vh;   /* fallback for old browsers */
+  height: 100dvh;  /* modern: accounts for iPad Safari chrome */
 }
 
 /* ---------- Screens ---------- */
@@ -68,8 +72,12 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 4vh 6vw;
+  padding-bottom: max(4vh, env(safe-area-inset-bottom));
+  padding-top: max(4vh, env(safe-area-inset-top));
   gap: 1.5rem;
   text-align: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .screen.active { display: flex; }
@@ -107,6 +115,7 @@ html, body {
     0 30px 80px rgba(0,0,0,0.6),
     inset 0 1px 0 rgba(255,255,255,0.06);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .card::before {
@@ -256,6 +265,7 @@ html, body {
     0 10px 30px rgba(79,140,255,0.4),
     inset 0 1px 0 rgba(255,255,255,0.3);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .big-btn::after {
@@ -284,6 +294,7 @@ html, body {
 .video-frame {
   position: relative;
   padding: 20px;
+  flex-shrink: 0;
 }
 
 .video-wrap {
@@ -299,8 +310,24 @@ html, body {
 #video-player {
   display: block;
   width: 100%;
-  max-height: 72vh;
+  max-height: 60vh;   /* fallback */
+  max-height: 60dvh;  /* modern: accounts for iPad chrome */
   background: #000;
+}
+
+/* Shrink the video further on short screens so the button stays visible */
+@media (max-height: 700px) {
+  #video-player {
+    max-height: 50vh;
+    max-height: 50dvh;
+  }
+}
+
+@media (max-height: 550px) {
+  #video-player {
+    max-height: 42vh;
+    max-height: 42dvh;
+  }
 }
 
 .corner {
@@ -403,6 +430,7 @@ html, body {
   perspective: 1400px;
   transform-style: preserve-3d;
   transition: transform 2s cubic-bezier(0.6, 0, 0.3, 1);
+  flex-shrink: 0;
 }
 
 .vault-scene.zoom {
@@ -411,8 +439,8 @@ html, body {
 
 .vault-3d {
   position: relative;
-  width: min(60vh, 60vw, 460px);
-  height: min(60vh, 60vw, 460px);
+  width: min(55vh, 60vw, 460px);
+  height: min(55vh, 60vw, 460px);
   transform-style: preserve-3d;
 }
 
@@ -705,10 +733,10 @@ html, body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(60vh, 60vw, 460px);
-  height: min(60vh, 60vw, 460px);
-  margin-top: calc(min(60vh, 60vw, 460px) / -2);
-  margin-left: calc(min(60vh, 60vw, 460px) / -2);
+  width: min(55vh, 60vw, 460px);
+  height: min(55vh, 60vw, 460px);
+  margin-top: calc(min(55vh, 60vw, 460px) / -2);
+  margin-left: calc(min(55vh, 60vw, 460px) / -2);
   pointer-events: none;
   z-index: 6;
 }
@@ -742,7 +770,8 @@ html, body {
 
 .next-images img {
   max-width: 100%;
-  max-height: 42vh;
+  max-height: 38vh;    /* fallback */
+  max-height: 38dvh;   /* modern */
   border-radius: 14px;
   box-shadow:
     0 20px 50px rgba(0,0,0,0.6),
