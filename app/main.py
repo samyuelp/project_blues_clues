@@ -4,20 +4,21 @@ FastAPI app for Project Blue's Clues.
 Serves:
 - Static frontend from /public
 - GET  /api/config              → sanitized config (no answers)
-- POST /api/validate/clue       → { stepId, input }    → { correct }
-- POST /api/validate/answer     → { stepId, optionId } → { correct }
-- POST /api/reset               → resets server-side state
+- POST /api/validate/clue       → { stepId, input }                       → { correct }
+- POST /api/validate/gate       → { stepId, gateIndex, optionId?|input? } → { correct }
+- POST /api/reset               → placeholder for server-side state reset
 - GET  /docs                    → auto-generated API docs (FastAPI built-in)
 """
 
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.config_loader import (
-    check_answer,
+    check_gate_answer,
     check_input,
     load_config,
     sanitize_config,
@@ -43,9 +44,13 @@ class ClueSubmission(BaseModel):
     input: str
 
 
-class AnswerSubmission(BaseModel):
+class GateSubmission(BaseModel):
     stepId: str
-    optionId: str
+    gateIndex: int
+    # For MCQ gates:
+    optionId: Optional[str] = None
+    # For text gates:
+    input: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -59,18 +64,38 @@ def get_config():
 
 @app.post("/api/validate/clue")
 def validate_clue(sub: ClueSubmission):
+    """Check the initial clue input for a step."""
     step = STEPS_BY_ID.get(sub.stepId)
     if not step:
         raise HTTPException(status_code=404, detail="Unknown step")
     return {"correct": check_input(step, sub.input)}
 
 
-@app.post("/api/validate/answer")
-def validate_answer(sub: AnswerSubmission):
+@app.post("/api/validate/gate")
+def validate_gate(sub: GateSubmission):
+    """
+    Check a gate's question. Handles both MCQ (optionId) and text (input).
+
+    The step's config decides which field is meaningful. If the wrong
+    field is provided, it's treated as incorrect rather than an error,
+    since the client shouldn't be able to reach that state anyway.
+    """
     step = STEPS_BY_ID.get(sub.stepId)
     if not step:
         raise HTTPException(status_code=404, detail="Unknown step")
-    return {"correct": check_answer(step, sub.optionId)}
+
+    if sub.gateIndex < 0 or sub.gateIndex >= len(step["gates"]):
+        raise HTTPException(status_code=404, detail="Unknown gate index")
+
+    # Package whichever field was provided into a submission dict.
+    submission = {}
+    if sub.optionId is not None:
+        submission["optionId"] = sub.optionId
+    if sub.input is not None:
+        submission["input"] = sub.input
+
+    correct = check_gate_answer(step, sub.gateIndex, submission)
+    return {"correct": correct}
 
 
 @app.post("/api/reset")

@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Project Blue's Clues",
-    "version": 1
+    "version": 2
   },
   "settings": {
     "normalizeInput": true,
@@ -11,37 +11,57 @@
   "steps": [
     {
       "id": "step-1",
-      "prompt": "Enter the code you found on the poster.",
+      "prompt": "Enter the code you found in the Seabird journal.",
       "accepts": {
         "value": "PINNI",
         "normalize": true,
         "strict": false
       },
-      "video": {
-        "src": "/videos/intro.mp4",
-        "requireFullWatch": true,
-        "skippable": false
-      },
-      "question": {
-        "text": "Placeholder question — swap this in once you have the real one.",
-        "type": "mcq",
-        "options": [
-          { "id": "a", "label": "Placeholder A" },
-          { "id": "b", "label": "Placeholder B" },
-          { "id": "c", "label": "Placeholder C" },
-          { "id": "d", "label": "Placeholder D" }
-        ],
-        "answer": "a"
-      },
+      "gates": [
+        {
+          "video": {
+            "src": "/videos/bird.mp4",
+            "requireFullWatch": true,
+            "skippable": false
+          },
+          "question": {
+            "type": "mcq",
+            "text": "Placeholder MCQ about the bird video.",
+            "options": [
+              { "id": "a", "label": "Placeholder A" },
+              { "id": "b", "label": "Placeholder B" },
+              { "id": "c", "label": "Placeholder C" },
+              { "id": "d", "label": "Placeholder D" }
+            ],
+            "answer": "a"
+          }
+        },
+        {
+          "video": {
+            "src": "/videos/ssl.mp4",
+            "requireFullWatch": true,
+            "skippable": false
+          },
+          "question": {
+            "type": "text",
+            "text": "Placeholder text question about the SSL video.",
+            "accepts": {
+              "value": "PLACEHOLDER",
+              "normalize": true,
+              "strict": false
+            }
+          }
+        }
+      ],
       "vault": {
         "theme": "bank-vault",
         "animationMs": 2500
       },
       "nextClue": {
-        "text": "Study these closely. You'll need them for the next step.",
+        "text": "Study this article closely. You'll need it for the next step.",
         "images": [
-          "/assets/graph1.jpg",
-          "/assets/graph2.jpg"
+          "/assets/subsistence-1.jpg",
+          "/assets/subsistence-2.jpg"
         ]
       }
     }

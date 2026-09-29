@@ -64,13 +64,36 @@
       <button class="big-btn" id="video-continue" disabled>Continue</button>
     </section>
 
-    <!-- ============ Question ============ -->
+    <!-- ============ MCQ question ============ -->
     <section class="screen" id="screen-question">
       <div class="card wide">
         <div class="badge">QUESTION</div>
         <h1 class="title" id="question-text"></h1>
         <div class="options" id="question-options"></div>
         <div class="error" id="question-error"></div>
+      </div>
+    </section>
+
+    <!-- ============ Text question ============ -->
+    <section class="screen" id="screen-text-question">
+      <div class="card">
+        <div class="badge">QUESTION</div>
+        <h1 class="title" id="text-question-text"></h1>
+        <div class="input-wrap">
+          <input
+            id="text-answer-input"
+            class="big-input"
+            type="text"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="TYPE YOUR ANSWER"
+          />
+          <div class="input-glow"></div>
+        </div>
+        <div class="error" id="text-question-error"></div>
+        <button class="big-btn" id="text-question-submit">Submit</button>
       </div>
     </section>
 

@@ -1,7 +1,11 @@
 /* ==================================================================
-   Project Blue's Clues — frontend state machine (v2)
+   Project Blue's Clues — frontend state machine (v3)
 
-   Flow: loading → clue → video → question → vault → next → (advance)
+   Flow:
+     loading → clue → [gate 1: video → question]
+                    → [gate 2: video → question]
+                    → ... (as many gates as config defines)
+                    → vault → next clue → (advance / reset)
 
    Everything is driven by /api/config, which is fetched once on load.
    Answers are validated server-side; this file never sees the correct
@@ -11,15 +15,17 @@
 let CONFIG = null;
 let stepIndex = 0;
 let currentStep = null;
+let gateIndex = 0;      // which gate we're currently on
 
 const $ = (id) => document.getElementById(id);
 const screens = {
-  loading:  $("screen-loading"),
-  clue:     $("screen-clue"),
-  video:    $("screen-video"),
-  question: $("screen-question"),
-  vault:    $("screen-vault"),
-  next:     $("screen-next"),
+  loading:       $("screen-loading"),
+  clue:          $("screen-clue"),
+  video:         $("screen-video"),
+  question:      $("screen-question"),
+  textQuestion:  $("screen-text-question"),
+  vault:         $("screen-vault"),
+  next:          $("screen-next"),
 };
 
 function showScreen(name) {
@@ -105,6 +111,7 @@ async function init() {
 function startStep() {
   if (stepIndex >= CONFIG.steps.length) stepIndex = 0;
   currentStep = CONFIG.steps[stepIndex];
+  gateIndex = 0;
   showClueScreen();
 }
 
@@ -129,7 +136,8 @@ async function submitClue() {
   const data = await res.json();
 
   if (data.correct) {
-    showVideoScreen();
+    gateIndex = 0;
+    startGate();
   } else {
     $("clue-error").textContent =
       CONFIG.settings.wrongAnswerMessage || "Not quite.";
@@ -138,19 +146,36 @@ async function submitClue() {
   }
 }
 
-/* ---------------- 2. Video ---------------- */
+/* ==================================================================
+   Gate flow — each gate is video → question
+   ================================================================== */
+function startGate() {
+  if (gateIndex >= currentStep.gates.length) {
+    // All gates passed → vault
+    showVaultScreen();
+    return;
+  }
+  showVideoScreen();
+}
+
+function currentGate() {
+  return currentStep.gates[gateIndex];
+}
+
+/* ---------------- Gate: Video ---------------- */
 function showVideoScreen() {
+  const gate = currentGate();
   const video = $("video-player");
   const continueBtn = $("video-continue");
   const hint = $("video-hint");
 
-  video.src = currentStep.video.src;
+  video.src = gate.video.src;
   video.currentTime = 0;
   continueBtn.disabled = true;
   hint.textContent = "Watch the whole video to continue.";
   showScreen("video");
 
-  if (!currentStep.video.requireFullWatch) {
+  if (!gate.video.requireFullWatch) {
     continueBtn.disabled = false;
     hint.textContent = "";
   }
@@ -164,17 +189,27 @@ function onVideoEnded() {
 }
 
 function onVideoSeeking(e) {
+  const gate = currentGate();
   const video = e.target;
-  if (currentStep.video.skippable === false) {
+  if (gate.video.skippable === false) {
     if (video.currentTime > (video.lastTime || 0) + 0.5) {
       video.currentTime = video.lastTime || 0;
     }
   }
 }
 
-/* ---------------- 3. Question ---------------- */
+/* ---------------- Gate: Question ---------------- */
 function showQuestionScreen() {
-  const q = currentStep.question;
+  const q = currentGate().question;
+  if (q.type === "mcq") {
+    showMcqQuestion(q);
+  } else {
+    showTextQuestion(q);
+  }
+}
+
+/* --- MCQ --- */
+function showMcqQuestion(q) {
   $("question-text").textContent = q.text;
   $("question-error").textContent = "";
 
@@ -191,26 +226,21 @@ function showQuestionScreen() {
     btn.className = "option-btn";
     btn.textContent = opt.label;
     btn.dataset.optionId = opt.id;
-    btn.addEventListener("click", () => submitAnswer(opt.id, btn));
+    btn.addEventListener("click", () => submitMcqAnswer(opt.id, btn));
     container.appendChild(btn);
   });
 
   showScreen("question");
 }
 
-async function submitAnswer(optionId, btnEl) {
+async function submitMcqAnswer(optionId, btnEl) {
   document.querySelectorAll(".option-btn").forEach((b) => (b.disabled = true));
 
-  const res = await fetch("/api/validate/answer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ stepId: currentStep.id, optionId }),
-  });
-  const data = await res.json();
+  const correct = await validateGate({ optionId });
 
-  if (data.correct) {
+  if (correct) {
     btnEl.classList.add("correct");
-    setTimeout(showVaultScreen, 800);
+    setTimeout(advanceGate, 800);
   } else {
     btnEl.classList.add("wrong");
     $("question-error").textContent =
@@ -222,7 +252,61 @@ async function submitAnswer(optionId, btnEl) {
   }
 }
 
-/* ---------------- 4. Vault ---------------- */
+/* --- Text --- */
+function showTextQuestion(q) {
+  $("text-question-text").textContent = q.text;
+  $("text-answer-input").value = "";
+  $("text-question-error").textContent = "";
+  showScreen("textQuestion");
+  setTimeout(() => $("text-answer-input").focus(), 300);
+}
+
+async function submitTextAnswer() {
+  const input = $("text-answer-input").value.trim();
+  if (!input) return;
+
+  // Disable while we check (single input, so no list to disable)
+  const btn = $("text-question-submit");
+  btn.disabled = true;
+
+  const correct = await validateGate({ input });
+
+  if (correct) {
+    setTimeout(advanceGate, 400);
+  } else {
+    $("text-question-error").textContent =
+      CONFIG.settings.wrongAnswerMessage || "Not quite.";
+    $("text-answer-input").value = "";
+    $("text-answer-input").focus();
+    btn.disabled = false;
+  }
+}
+
+/* --- Shared submit for gates --- */
+async function validateGate(submission) {
+  const body = {
+    stepId: currentStep.id,
+    gateIndex,
+    ...submission,
+  };
+  const res = await fetch("/api/validate/gate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  return data.correct === true;
+}
+
+/* ---------------- Advance to next gate (or vault) ---------------- */
+function advanceGate() {
+  gateIndex += 1;
+  startGate();
+}
+
+/* ==================================================================
+   Vault
+   ================================================================== */
 function showVaultScreen() {
   showScreen("vault");
 
@@ -277,7 +361,7 @@ function showVaultScreen() {
   setTimeout(showNextScreen, 2000 + ms);
 }
 
-/* ---------------- 5. Next clue ---------------- */
+/* ---------------- Next clue ---------------- */
 function showNextScreen() {
   const clue = currentStep.nextClue || {};
   $("next-text").textContent = clue.text || "";
@@ -306,7 +390,7 @@ function showNextScreen() {
   showScreen("next");
 }
 
-/* ---------------- 6. Advance ---------------- */
+/* ---------------- Advance (Done on next clue) ---------------- */
 function advance() {
   stepIndex += 1;
   startStep();
@@ -471,7 +555,9 @@ function fireSparkles() {
   tick();
 }
 
-/* ---------------- Wiring ---------------- */
+/* ==================================================================
+   Wiring
+   ================================================================== */
 $("clue-submit").addEventListener("click", submitClue);
 $("clue-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitClue();
@@ -485,6 +571,12 @@ videoEl.addEventListener("timeupdate", (e) => {
 });
 
 $("video-continue").addEventListener("click", showQuestionScreen);
+
+$("text-question-submit").addEventListener("click", submitTextAnswer);
+$("text-answer-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") submitTextAnswer();
+});
+
 $("next-done").addEventListener("click", advance);
 
 init();
