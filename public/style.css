@@ -35,7 +35,6 @@ html, body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  /* Prevent iOS text size adjust on rotate */
   -webkit-text-size-adjust: 100%;
 }
 
@@ -59,8 +58,8 @@ html, body {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 100vh;   /* fallback for old browsers */
-  height: 100dvh;  /* modern: accounts for iPad Safari chrome */
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* ---------- Screens ---------- */
@@ -82,7 +81,6 @@ html, body {
 
 .screen.active { display: flex; }
 
-/* Staggered entrance for children of .card */
 .screen.active .card > * {
   animation: riseIn 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
@@ -290,6 +288,26 @@ html, body {
   cursor: not-allowed;
 }
 
+/* ---------- Secondary button (e.g. "Start from the beninging") ---------- */
+.big-btn.secondary {
+  background: rgba(8, 12, 22, 0.7);
+  border: 2px solid var(--line);
+  color: var(--text);
+  box-shadow: none;
+  padding: calc(1rem - 2px) calc(3rem - 2px); /* compensate for border */
+  font-size: 1rem;
+}
+
+.big-btn.secondary:hover:not(:disabled) {
+  border-color: var(--blue);
+  background: rgba(79, 140, 255, 0.1);
+  filter: none;
+}
+
+.big-btn.secondary::after {
+  display: none;
+}
+
 /* ---------- Video ---------- */
 .video-frame {
   position: relative;
@@ -310,12 +328,11 @@ html, body {
 #video-player {
   display: block;
   width: 100%;
-  max-height: 60vh;   /* fallback */
-  max-height: 60dvh;  /* modern: accounts for iPad chrome */
+  max-height: 60vh;
+  max-height: 60dvh;
   background: #000;
 }
 
-/* Shrink the video further on short screens so the button stays visible */
 @media (max-height: 700px) {
   #video-player {
     max-height: 50vh;
@@ -328,6 +345,15 @@ html, body {
     max-height: 42vh;
     max-height: 42dvh;
   }
+}
+
+.video-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .corner {
@@ -444,7 +470,6 @@ html, body {
   transform-style: preserve-3d;
 }
 
-/* ---- Interior (revealed once the door opens) ---- */
 .vault-interior {
   position: absolute;
   inset: 0;
@@ -546,7 +571,6 @@ html, body {
   to { opacity: 1; }
 }
 
-/* ---- Vault door ---- */
 .vault-door {
   position: absolute;
   inset: 0;
@@ -625,7 +649,6 @@ html, body {
 .door-bolts span:nth-child(7) { bottom: 8%; left: 22%;  transform: rotate(45deg) translateX(-10px); }
 .door-bolts span:nth-child(8) { bottom: 8%; right: 22%; transform: rotate(-45deg) translateX(10px); }
 
-/* Handle */
 .door-handle {
   position: absolute;
   inset: 0;
@@ -704,7 +727,6 @@ html, body {
   border-radius: 4px;
 }
 
-/* Vault screen rays */
 .vault-rays {
   position: absolute;
   top: 50%;
@@ -727,7 +749,6 @@ html, body {
 
 .vault-rays.on { opacity: 1; }
 
-/* Dust + sparkle canvases overlay the 3D stage exactly */
 .dust-canvas,
 .sparkle-canvas {
   position: absolute;
@@ -770,8 +791,8 @@ html, body {
 
 .next-images img {
   max-width: 100%;
-  max-height: 38vh;    /* fallback */
-  max-height: 38dvh;   /* modern */
+  max-height: 38vh;
+  max-height: 38dvh;
   border-radius: 14px;
   box-shadow:
     0 20px 50px rgba(0,0,0,0.6),

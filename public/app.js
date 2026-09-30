@@ -6,16 +6,12 @@
                     → [gate 2: video → question]
                     → ... (as many gates as config defines)
                     → vault → next clue → (advance / reset)
-
-   Everything is driven by /api/config, which is fetched once on load.
-   Answers are validated server-side; this file never sees the correct
-   answers, only { correct: true/false } responses.
    ================================================================== */
 
 let CONFIG = null;
 let stepIndex = 0;
 let currentStep = null;
-let gateIndex = 0;      // which gate we're currently on
+let gateIndex = 0;
 
 const $ = (id) => document.getElementById(id);
 const screens = {
@@ -99,7 +95,6 @@ async function init() {
     if (!res.ok) throw new Error("Failed to load config");
     CONFIG = await res.json();
     stepIndex = 0;
-    // small delay so the loader breathes
     setTimeout(startStep, 600);
   } catch (err) {
     console.error(err);
@@ -151,7 +146,6 @@ async function submitClue() {
    ================================================================== */
 function startGate() {
   if (gateIndex >= currentStep.gates.length) {
-    // All gates passed → vault
     showVaultScreen();
     return;
   }
@@ -171,6 +165,7 @@ function showVideoScreen() {
 
   video.src = gate.video.src;
   video.currentTime = 0;
+  video.lastTime = 0;
   continueBtn.disabled = true;
   hint.textContent = "Watch the whole video to continue.";
   showScreen("video");
@@ -196,6 +191,18 @@ function onVideoSeeking(e) {
       video.currentTime = video.lastTime || 0;
     }
   }
+}
+
+function replayVideo() {
+  const video = $("video-player");
+  const continueBtn = $("video-continue");
+  const hint = $("video-hint");
+
+  video.currentTime = 0;
+  video.lastTime = 0;
+  continueBtn.disabled = true;
+  hint.textContent = "Watch the whole video to continue.";
+  video.play().catch(() => {});
 }
 
 /* ---------------- Gate: Question ---------------- */
@@ -265,7 +272,6 @@ async function submitTextAnswer() {
   const input = $("text-answer-input").value.trim();
   if (!input) return;
 
-  // Disable while we check (single input, so no list to disable)
   const btn = $("text-question-submit");
   btn.disabled = true;
 
@@ -298,7 +304,6 @@ async function validateGate(submission) {
   return data.correct === true;
 }
 
-/* ---------------- Advance to next gate (or vault) ---------------- */
 function advanceGate() {
   gateIndex += 1;
   startGate();
@@ -317,7 +322,6 @@ function showVaultScreen() {
   const rays     = $("vault-rays");
   const hint     = $("vault-hint");
 
-  // Reset
   scene.classList.remove("zoom");
   door.classList.remove("open");
   handle.classList.remove("spin");
@@ -328,12 +332,10 @@ function showVaultScreen() {
   if (sparkleAnimId) { cancelAnimationFrame(sparkleAnimId); sparkleAnimId = null; }
   if (dustAnimId)    { cancelAnimationFrame(dustAnimId);    dustAnimId = null; }
 
-  // Phase 1 — handle spins (0.2s → 1.3s)
   setTimeout(() => {
     handle.classList.add("spin");
   }, 200);
 
-  // Phase 2 — bolts retract (1.4s)
   setTimeout(() => {
     bolts.forEach((b) => {
       const t = b.style.transform;
@@ -342,7 +344,6 @@ function showVaultScreen() {
     });
   }, 1400);
 
-  // Phase 3 — door swings open, dust puffs, rays turn on (2.0s)
   setTimeout(() => {
     door.classList.add("open");
     rays.classList.add("on");
@@ -351,12 +352,10 @@ function showVaultScreen() {
     hint.textContent = "It's open!";
   }, 2000);
 
-  // Phase 4 — sparkles fire as the interior is revealed (2.8s)
   setTimeout(() => {
     fireSparkles();
   }, 2800);
 
-  // Phase 5 — show the next clue (after the vault animation settles)
   const ms = currentStep.vault?.animationMs || 3500;
   setTimeout(showNextScreen, 2000 + ms);
 }
@@ -366,7 +365,6 @@ function showNextScreen() {
   const clue = currentStep.nextClue || {};
   $("next-text").textContent = clue.text || "";
 
-  // Support both new ("images": [...]) and old ("image": "...") shapes
   let images = [];
   if (Array.isArray(clue.images)) {
     images = clue.images.filter(Boolean);
@@ -382,7 +380,6 @@ function showNextScreen() {
     const img = document.createElement("img");
     img.src = src;
     img.alt = `Clue image ${i + 1}`;
-    // Tap to open full-size in a new tab (browser zoom, no leaving the flow)
     img.addEventListener("click", () => window.open(src, "_blank"));
     container.appendChild(img);
   });
@@ -390,7 +387,7 @@ function showNextScreen() {
   showScreen("next");
 }
 
-/* ---------------- Advance (Done on next clue) ---------------- */
+/* ---------------- Advance (Done) ---------------- */
 function advance() {
   stepIndex += 1;
   startStep();
@@ -417,7 +414,7 @@ function sizeCanvas(canvas) {
 }
 
 /* ==================================================================
-   Dust puff (fires when the door opens)
+   Dust puff
    ================================================================== */
 let dustAnimId = null;
 
@@ -430,7 +427,6 @@ function fireDust() {
   const particles = [];
   const COUNT = 46;
   for (let i = 0; i < COUNT; i++) {
-    // Bias angles to the left side (where the door opens)
     const angle = (Math.PI * 0.3) + Math.random() * Math.PI * 1.4;
     const speed = 0.5 + Math.random() * 2.2;
     const r = 10 + Math.random() * 30;
@@ -479,7 +475,7 @@ function fireDust() {
 }
 
 /* ==================================================================
-   Sparkle burst (fires as the interior is revealed)
+   Sparkle burst
    ================================================================== */
 let sparkleAnimId = null;
 
@@ -571,6 +567,7 @@ videoEl.addEventListener("timeupdate", (e) => {
 });
 
 $("video-continue").addEventListener("click", showQuestionScreen);
+$("video-replay").addEventListener("click", replayVideo);
 
 $("text-question-submit").addEventListener("click", submitTextAnswer);
 $("text-answer-input").addEventListener("keydown", (e) => {
